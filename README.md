@@ -1,6 +1,8 @@
 # Peaceable Queens
 Attempts to solve the Peaceable Queens problem, as described in this video https://www.youtube.com/watch?v=IN1fPtY9jYg
 
+This solution is designed to be single threaded, so that it can be implemented on an FPGA using digital logic. Multiple threads would probably speed it up, but not a lot of thought has been put into that application beyond having each thread have the starting queen be at different locations such that they don't run over each other in the backtracking algorithm.
+
 ## General algorithm
 
 To solve this problem, two vectors are created, one for the positions of white queens and one for the positions of black queens. Whenever there is an equal number of black and white queens placed (0, 1, 2, etc), it is White's turn. When they are unequal, it is Black's turn. The index of the board to begin searching at is the last position of the last queen placed plus one. If the white queens had positions of `{0,1,3,6}`, the index to begin searching would be `7`. If the position results in a legal board, then this action is repeated for the other color until there is an illegal placement. If the newly placed piece results in an invalid board, then the piece is removed, and the search continues until the end of the board is reached. If the end of the board is reached without a valid position being found, then the previous queen placed is removed, the index is noted, and the search continues from there.

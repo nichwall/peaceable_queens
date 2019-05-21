@@ -10,17 +10,12 @@ Puzzle::Puzzle(int n) {
     this->sideLength = n;
     this->boardSize = n*n;
 
-    this->maxQueens = (n*n)/2;
+    this->maxQueens = (n*n)/2; // Arbitrarily set, should match bounds from OEIS
 
     queens.push_back(std::vector<int>());
     queens.push_back(std::vector<int>());
 
     turn = 0;
-
-    //previousSolutions.reserve(1000);
-    str_solutions.max_load_factor(0.5);
-    //str_solutions.reserve(1000);
-    //str_solutions.rehash(1000);
 }
 
 Puzzle::~Puzzle() {
@@ -30,14 +25,8 @@ bool Puzzle::legalPosition(int color, int position) {
     // Checks if a queen of COLOR can be placed at POSITION
     rowError = validRow(color, position);
     return rowError
-        //&& validPos(color, position) // Unneeded because this check occurs in row/col/diag
         && validCol(color, position)
-#if 0
-        && validDiag(color, position)
-        && isUnique();
-#else
         && validDiag(color, position);
-#endif
 }
 
 bool Puzzle::addQueen(int position) {
@@ -137,12 +126,10 @@ int Puzzle::solveBoard() {
                 if (queens[WHITE].size() >= maxQueensPlaced) {
                     maxQueensPlaced = queens[WHITE].size();
                     solutions++;
-                    // attempting only insert if 2 queens
-                    if (queens[WHITE].size() < 0) {
-                        insertIntoSolution();
-                    }
+#if 1
                     std::cout << "\n";
                     printBoard();
+#endif
                 }
             }
         } else {
@@ -167,27 +154,6 @@ int Puzzle::solveBoard() {
         }
     }
 
-    /*std::cout << "\n";
-    std::cout << " ====== previousSolutions ======\n";
-    std::cout << "Size of solutions: " << previousSolutions.size() << "\n";
-    std::cout << "Load factor: " << previousSolutions.max_load_factor() << "\n";
-    std::cout << "Max size of solutions: " << previousSolutions.max_size() << "\n";
-    std::cout << "Max load factor: " << previousSolutions.max_load_factor() << "\n";
-    std::cout << "Bucket count: " << previousSolutions.bucket_count() << "\n";
-    std::cout << "Max Bucket count: " << previousSolutions.max_bucket_count() << "\n";
-    std::cout << "\n";*/
-
-#if 1
-    std::cout << "\n";
-    std::cout << " ====== str_solutions ======\n";
-    std::cout << "Size of solutions: " << str_solutions.size() << "\n";
-    std::cout << "Load factor: " << str_solutions.max_load_factor() << "\n";
-    //std::cout << "Max size of solutions: " << str_solutions.max_size() << "\n";
-    std::cout << "Max load factor: " << str_solutions.max_load_factor() << "\n";
-    std::cout << "Bucket count: " << str_solutions.bucket_count() << "\n";
-    //std::cout << "Max Bucket count: " << str_solutions.max_bucket_count() << "\n";
-    std::cout << "\n";
-#endif
     return solutions;
 }
 
@@ -289,30 +255,7 @@ char Puzzle::contents(int position) {
     return '.';
 }
 
-void Puzzle::insertIntoSolution() {
-    // Store the rotations to reduce the number of copies
-    // during a check
-    rotations(queens, 3);
-
-    /*
-    // Mirror vertically and then rotate
-    std::vector<std::vector<int>> temp_queens;
-    std::vector<std::vector<int>> temp_queens2;
-    mirror(queens, temp_queens, true);
-    rotations(temp_queens, 4);
-
-    // Rotate once and then mirror
-    rotate(queens, temp_queens);
-    mirror(temp_queens, temp_queens2, true);
-    rotations(temp_queens, 4);
-
-    // Mirror vertically horizontally
-    mirror(queens, temp_queens, true);
-    mirror(temp_queens, temp_queens2, false);
-    rotations(temp_queens, 4);
-    */
-}
-
+/*
 // Mirrors queen locations vertically
 void Puzzle::mirror(std::vector<std::vector<int>> &vec, std::vector<std::vector<int>> &out, bool vertical) {
     out = std::vector<std::vector<int>>();
@@ -391,6 +334,7 @@ bool Puzzle::isUnique() {
 
     return (got == str_solutions.end());
 }
+*/
 
 std::string Puzzle::solution_toString() {
     return solution_toString(queens);
