@@ -45,6 +45,7 @@ class Puzzle {
 
         bool rowError;
 
+        int maxQueensPlaced;
 };
 
 #endif

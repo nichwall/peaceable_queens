@@ -1,7 +1,7 @@
 # Peaceable Queens
 Attempts to solve the Peaceable Queens problem, as described in this video https://www.youtube.com/watch?v=IN1fPtY9jYg
 
-This solution is designed to be single threaded, so that it can be implemented on an FPGA using digital logic. Multiple threads would probably speed it up, but not a lot of thought has been put into that application beyond having each thread have the starting queen be at different locations such that they don't run over each other in the backtracking algorithm.
+This solution is designed to be single threaded, so that it can be implemented on an FPGA using digital logic. Multiple threads would probably speed it up, but not a lot of thought has been put into that application beyond having each thread have the starting queen be at different locations such that they don't run over each other in the backtracking algorithm. All benchmarks demonstrating changes in time are generalizations from running the code, without in-depth analysis.
 
 ## General algorithm
 
@@ -15,16 +15,15 @@ Only allow the first white queen to be in the top left corner of the board. This
 
 Only allow the first black queen to be on or above the digaonal of the board. This prevents any reflections along the diagonal from being found, as well as reduces the search space.
 
+When checking if a board configuration is valid, compare the number of remaining spaces to the end of the board to the best solution found to this point. For example, if at a point during the search we have found the most queens successfully placed to be 7, and the second queen is attempting to be placed within 6 locations of the end of the board, we know that all resulting boards from that configuration will not be optimal, so skip them and backtrack. This resulted in a speedup of around 30-40% on boards 7x7 and smaller.
+
 ## Detrimental optimizations
 
 Keeping track of all previous solutions in order to check for permutations of the same board. This led to an increase in time to solve all board configurations, increase in memory usage, and added a lot of complexity to make sure each perumation was found. Most permutations are found from restricting the location of the starting queens, found above. Attempts were made to convert the vector to a string before hashing, as well as preallocating memory, but no beneficial variation was found.
 
-Tracking columns for skipping undesired indices when searching for the next valid location. Tracking these through the use of flags results in more comparisons per board configuration, and cleaning up the flags after a queen is successfully placed or removed would also increase the amonut of work per board configuration.
+Tracking columns for skipping undesired indices when searching for the next valid location. Tracking these through the use of flags results in more comparisons per board configuration, and cleaning up the flags after a queen is successfully placed or removed would also increase the amonut of work per board configuration. Code was not implemented, but determined to be ineffective when not using digital logic.
 
 ## Untested optimizations
-
-- Check if there's enough space left in the board to match the best solution found up to that point
-- Remove the position occupied check, because that is taken care of in row, column, and diagonal checking.
 
 ## Optimizations for the FPGA
 

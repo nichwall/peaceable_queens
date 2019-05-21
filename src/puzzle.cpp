@@ -1,6 +1,9 @@
 #include <iostream>
 #include <math.h>
 
+#include <stdlib.h>
+#include <time.h>
+
 #include "puzzle.hpp"
 
 Puzzle::Puzzle() : Puzzle(5) {
@@ -38,7 +41,7 @@ bool Puzzle::addQueen(int position) {
 
     // Attempt to place queen
     bool canPlace = legalPosition(color, position)
-                 && position < boardSize
+                 && position <= ( boardSize - maxQueensPlaced + queens[color].size() )
                  && position >= 0;
 
     // Removing permutations of the same solution
@@ -93,7 +96,7 @@ int Puzzle::solveBoard() {
     int currentIndex = 0;
 
     // Keep track of the highest number of queens we were able to place
-    int maxQueensPlaced = 0;
+    maxQueensPlaced = 0;
     int solutions = 0;
 
     bool done = false;
@@ -158,6 +161,8 @@ int Puzzle::solveBoard() {
 }
 
 void Puzzle::printBoard() {
+    time_t currentTime = time(NULL);
+    printf("%s", ctime(&currentTime));
     for (int i=0; i<sideLength; i++) {
         for (int j=0; j<sideLength; j++) {
             std::cout << contents(i*sideLength + j);
