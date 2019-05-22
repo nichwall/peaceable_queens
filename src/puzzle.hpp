@@ -24,6 +24,7 @@ class Puzzle {
         int solveBoard();
 
         void printBoard();
+        void writeToFile(std::ofstream &ofile);
     private:
         bool validPos(int color, int position);
         bool validRow(int color, int position);
@@ -31,6 +32,8 @@ class Puzzle {
         bool validDiag(int color, int position);
 
         char contents(int position);
+
+        std::string date_toString();
 
         std::string solution_toString();
         std::string solution_toString(std::vector<std::vector<int>> &vec);
@@ -42,6 +45,7 @@ class Puzzle {
         int turn;  // 0: white, 1: black
 
         int maxQueens; // Size to set the queen arrays to
+        int solutions;
 
         bool rowError;
 

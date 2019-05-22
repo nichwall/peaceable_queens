@@ -10,10 +10,10 @@
 int main() {
     // Do this 1000 times for benchmarking
     int solutions = 0;
-    //for (int i=0; i<100; i++) {
+    //for (int i=0; i<1000; i++) {
         //std::cout << "=====================================\n";
         //std::cout << "=====================================\n";
-        Puzzle first(7);
+        Puzzle first(4);
         solutions = first.solveBoard();
     //}
     std::cout << "Found " << solutions << " solutions\n";

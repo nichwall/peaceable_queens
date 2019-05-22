@@ -27,6 +27,9 @@ Puzzle::~Puzzle() {
 bool Puzzle::legalPosition(int color, int position) {
     // Checks if a queen of COLOR can be placed at POSITION
     rowError = validRow(color, position);
+    if (rowError && color == BLACK && (position % sideLength == position / sideLength) ) {
+        return false;
+    }
     return rowError
         && validCol(color, position)
         && validDiag(color, position);
@@ -52,17 +55,27 @@ bool Puzzle::addQueen(int position) {
     // border is excluded
     if (canPlace) {
         if (color == WHITE && queens[WHITE].size() == 0) {
-            canPlace = (position % sideLength <= (sideLength/2)
-                     && position / sideLength <  (sideLength/2) );
+            canPlace = (position % sideLength < ((sideLength+1)/2)
+                     && position / sideLength < ((sideLength+1)/2) );
         }
     }
-    // Check if the first black queen is on or above the diagonal.
+    // Check that the black queen is not on the forward diagonal. Any queen that
+    // is on the diagonal is a permutation of another solution where white is on the diagonal
+    if (canPlace) {
+        if (color == BLACK ) {
+            canPlace = !(position % sideLength == position / sideLength);
+        }
+    }
+    // Check if the first black queen is above the diagonal.
     // This should remove flips along the diagonal from the first black
-    // queen. Additional checking will likely be needed to make sure that
-    // weird edge cases with the flipping don't get through
     if (canPlace) {
         if (color == BLACK && queens[BLACK].size() == 0) {
-            canPlace = (position % sideLength >= position / sideLength);
+            canPlace = (position % sideLength > position / sideLength);
+            // The first black queen also cannot be placed in a position occuring before
+            // the first white queen
+            if (canPlace) {
+                canPlace = (position > queens[WHITE][0]);
+            }
         }
     }
 
@@ -97,12 +110,15 @@ int Puzzle::solveBoard() {
 
     // Keep track of the highest number of queens we were able to place
     maxQueensPlaced = 0;
-    int solutions = 0;
+    solutions = 0;
 
     bool done = false;
 
     bool lastSuccessful;
     turn = 0;
+
+    //std::ofstream ofile ((date_toString()).c_str());
+    std::ofstream ofile ("out.txt");
 
     //while (startIndex < boardSize-1) {
     while (startIndex < boardSize-1 && currentIndex >= 0) {
@@ -132,6 +148,7 @@ int Puzzle::solveBoard() {
 #if 1
                     std::cout << "\n";
                     printBoard();
+                    writeToFile(ofile);
 #endif
                 }
             }
@@ -157,6 +174,7 @@ int Puzzle::solveBoard() {
         }
     }
 
+    ofile.close();
     return solutions;
 }
 
@@ -169,6 +187,19 @@ void Puzzle::printBoard() {
         }
         std::cout << "\n";
     }
+}
+
+void Puzzle::writeToFile(std::ofstream &ofile) {
+    ofile << date_toString();
+    ofile << "\n";
+    ofile << solutions << "\n";
+    for (int i=0; i<sideLength; i++) {
+        for (int j=0; j<sideLength; j++) {
+            ofile << contents(i*sideLength + j);
+        }
+        ofile << "\n";
+    }
+    ofile << "\n";
 }
 
 bool Puzzle::validPos(int color, int position) {
@@ -353,5 +384,24 @@ std::string Puzzle::solution_toString(std::vector<std::vector<int>> &vec) {
     for (int i=0; i<vec[BLACK].size(); i++) {
         out += vec[BLACK][i] + ",";
     }
+    return out;
+}
+
+std::string Puzzle:: date_toString() {
+    time_t t = time(0);
+
+    // Convert to string
+    std::string out = ctime(&t);
+
+    // Sanitize string for filename
+    for (std::string::iterator it = out.begin(); it != out.end(); ++it) {
+        if (*it == ' ')
+            *it = '_';
+        if (*it == ':')
+            *it = '-';
+    }
+
+    out.erase(std::remove(out.begin(), out.end(), '\n'), out.end());
+
     return out;
 }

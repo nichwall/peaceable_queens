@@ -13,7 +13,9 @@ If the point of invalidity is the row, skip to the first index of the next row. 
 
 Only allow the first white queen to be in the top left corner of the board. This prevents any rotations, vertical reflections, and horizontal reflections from being found, as well as reduces the search space.
 
-Only allow the first black queen to be on or above the digaonal of the board. This prevents any reflections along the diagonal from being found, as well as reduces the search space.
+Only allow the first black queen to be above the digaonal of the board that is from the top left to the bottom right. This prevents any reflections along the diagonal from being found, as well as reduces the search space.
+
+No black queens can be located on the diagonal from the upper left corner to the lower right corner. Any black queens located on this diagonal will result in the inversion of having a white queen in that location.
 
 When checking if a board configuration is valid, compare the number of remaining spaces to the end of the board to the best solution found to this point. For example, if at a point during the search we have found the most queens successfully placed to be 7, and the second queen is attempting to be placed within 6 locations of the end of the board, we know that all resulting boards from that configuration will not be optimal, so skip them and backtrack. This resulted in a speedup of around 30-40% on boards 7x7 and smaller.
 
