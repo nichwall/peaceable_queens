@@ -1,6 +1,8 @@
 #include <iostream>
 #include <math.h>
 
+#define LIST_USE 0
+
 #include <stdlib.h>
 #include <time.h>
 
@@ -17,6 +19,10 @@ Puzzle::Puzzle(int n) {
 
     queens.push_back(std::vector<int>());
     queens.push_back(std::vector<int>());
+
+    for (int i=0; i<boardSize; i++) {
+        board.push_back(EMPTY);
+    }
 
     turn = 0;
 }
@@ -54,9 +60,13 @@ bool Puzzle::addQueen(int position) {
     // side lengths, the right border is included and the bottom
     // border is excluded
     if (canPlace) {
+        //printBoard();
         if (color == WHITE && queens[WHITE].size() == 0) {
             canPlace = (position % sideLength < ((sideLength+1)/2)
                      && position / sideLength < ((sideLength+1)/2) );
+            if (!canPlace) {
+                //std::cout << "A fail\n";
+            }
         }
     }
     // Check that the black queen is not on the forward diagonal. Any queen that
@@ -65,22 +75,73 @@ bool Puzzle::addQueen(int position) {
         if (color == BLACK ) {
             canPlace = !(position % sideLength == position / sideLength);
         }
+        if (!canPlace) {
+            //std::cout << "B fail\n";
+        }
     }
-    // Check if the first black queen is above the diagonal.
-    // This should remove flips along the diagonal from the first black
-    if (canPlace) {
-        if (color == BLACK && queens[BLACK].size() == 0) {
+
+    if (canPlace && color == BLACK) {
+        // Check if the first black queen is above the diagonal.
+        // This should remove flips along the diagonal from the first black
+        if (queens[BLACK].size() == 0) {
             canPlace = (position % sideLength > position / sideLength);
+            if (!canPlace) {
+                //std::cout << "C fail\n";
+            }
             // The first black queen also cannot be placed in a position occuring before
-            // the first white queen
+            // the first white queen in the top left quarter
+            /*
+            if (canPlace && position / sideLength < (sideLength+1)/2 &&
+                    position % sideLength < (sideLength+1)/2 ) {
+                canPlace = (position > queens[WHITE][0]);
+                if (!canPlace) {
+                    //std::cout << "D fail\n";
+                }
+            }
+            */
             if (canPlace) {
                 canPlace = (position > queens[WHITE][0]);
             }
         }
+
+#if 0
+        // Check that the black piece being placed would not come before
+        // the first black queen if the board is flipped along the diagonal,
+        // if being placed below the diagonal
+        if (canPlace &&
+            position % sideLength < position / sideLength ) {
+
+            int row = position / sideLength;
+            int col = position % sideLength;
+
+            int tempIndex = col * sideLength + row;
+
+            if ( tempIndex < queens[BLACK][0] ) {
+                std::cout << "Position: " << position << "\tFirst: " << queens[BLACK][0] << "\tTemp: " << tempIndex;
+                canPlace = ( board[tempIndex] != EMPTY );
+                std::cout << "\tCan place: " << canPlace << "\n";
+                if (!canPlace) {
+                    std::cout << "E fail\n";
+                }
+            }
+        }
+#else
+        // Check that the black piece that is being placed is not
+        // on the same row of the first black queen's column, if so, that this
+        // queen is not before the first queen
+        if (canPlace && queens[BLACK].size() != 0) {
+            if ( (position / sideLength == queens[BLACK][0] % sideLength) &&
+                 (position % sideLength <  queens[BLACK][0] / sideLength) ) {
+                canPlace = false;
+            }
+        }
+#endif
     }
 
     if (canPlace) {
         queens[color].push_back(position);
+        // Change the value in the board
+        board[position] = color;
     }
 
     return canPlace;
@@ -95,6 +156,8 @@ int Puzzle::removeQueen() {
     if (queens[color].size() != 0) {
         int temp = queens[color].back();
         queens[color].pop_back();
+        // Remove from board
+        board[temp] = EMPTY;
         return temp;
     } return -5;
 }
@@ -226,11 +289,20 @@ bool Puzzle::validRow(int color, int position) {
     
     int opposing = (color + 1)%2;
 
+#if LIST_USE
     for (int i=0; i<queens[opposing].size(); i++) {
         if (queens[opposing][i] / sideLength == position / sideLength) {
             return false;
         }
     }
+#else
+    int start = position - (position%sideLength);
+    for (int i=start; i<start+sideLength; i++) {
+        if (board[i] == opposing) {
+            return false;
+        }
+    }
+#endif
     return true;
 }
 
@@ -240,11 +312,20 @@ bool Puzzle::validCol(int color, int position) {
 
     int opposing = (color + 1)%2;
 
+#if LIST_USE
     for (int i=0; i<queens[opposing].size(); i++) {
         if (queens[opposing][i] % sideLength == position % sideLength) {
             return false;
         }
     }
+#else
+    int start = position % sideLength;
+    for (int i=start; i<boardSize; i+=sideLength) {
+        if (board[i] == opposing) {
+            return false;
+        }
+    }
+#endif
     return true;
 }
 
@@ -253,12 +334,14 @@ bool Puzzle::validDiag(int color, int position) {
     // have the same diagonals
 
     int opposing = (color + 1)%2;
+
     int row = position / sideLength;
     int col = position % sideLength;
 
     int tRow;
     int tCol;
 
+#if LIST_USE
     for (int i=0; i<queens[opposing].size(); i++) {
         tRow = queens[opposing][i] / sideLength;
         tCol = queens[opposing][i] % sideLength;
@@ -267,6 +350,37 @@ bool Puzzle::validDiag(int color, int position) {
             return false;
         }
     }
+#else
+
+    tRow = row;
+    tCol = col;
+    while (--tRow >= 0 && --tCol >= 0) {
+        if (board[ tRow*sideLength + tCol ] == opposing) {
+            return false;
+        }
+    }
+    tRow = row;
+    tCol = col;
+    while (--tRow >= 0 && ++tCol < sideLength) {
+        if (board[ tRow*sideLength + tCol ] == opposing) {
+            return false;
+        }
+    }
+    tRow = row;
+    tCol = col;
+    while (++tRow < sideLength && --tCol >= 0) {
+        if (board[ tRow*sideLength + tCol ] == opposing) {
+            return false;
+        }
+    }
+    tRow = row;
+    tCol = col;
+    while (++tRow < sideLength && ++tCol < sideLength) {
+        if (board[ tRow*sideLength + tCol ] == opposing) {
+            return false;
+        }
+    }
+#endif
     return true;
 }
 

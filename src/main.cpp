@@ -13,7 +13,7 @@ int main() {
     //for (int i=0; i<1000; i++) {
         //std::cout << "=====================================\n";
         //std::cout << "=====================================\n";
-        Puzzle first(4);
+        Puzzle first(8);
         solutions = first.solveBoard();
     //}
     std::cout << "Found " << solutions << " solutions\n";
