@@ -8,8 +8,8 @@ BDIR = bin
 # Compiler option
 INC = $(SDIR)
 INC_PARAMS = $(foreach d, $(INC), -I$d)
-CPPFLAGS = -std=c++11 -g
-#CPPFLAGS = -std=c++11 -O3
+#CPPFLAGS = -std=c++11 -g
+CPPFLAGS = -std=c++11 -O3
 LINKFLAGS = 
 
 # Compilation commands
