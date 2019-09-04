@@ -34,4 +34,5 @@
 # Compiled directories
 bin/*
 obj/*
+outs/*
 *.txt
