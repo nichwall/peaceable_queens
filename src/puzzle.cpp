@@ -37,7 +37,7 @@ bool Puzzle::legalPosition(int color, int position) {
         return false;
     }
     return rowError
-        && validCol(color, position)
+        && validCol (color, position)
         && validDiag(color, position);
 }
 
@@ -351,7 +351,6 @@ bool Puzzle::validDiag(int color, int position) {
         }
     }
 #else
-
     tRow = row;
     tCol = col;
     while (--tRow >= 0 && --tCol >= 0) {
@@ -399,7 +398,6 @@ char Puzzle::contents(int position) {
                     return 'B';
                 }
             }
-
         }
     }
     return '.';
@@ -501,7 +499,7 @@ std::string Puzzle::solution_toString(std::vector<std::vector<int>> &vec) {
     return out;
 }
 
-std::string Puzzle:: date_toString() {
+std::string Puzzle::date_toString() {
     time_t t = time(0);
 
     // Convert to string
