@@ -15,7 +15,7 @@ addons:
             - gcc-5
             - g++-5
 
-script: ./CIbuild.sh
+script: make
 
 branches:
     only:
