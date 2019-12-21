@@ -1,0 +1,22 @@
+language: cpp
+sudo: false
+
+compiler:
+    - gcc
+
+install:
+    - if [ "CXX" = "g++" ]; then export CXX="g++-5" CC="gcc-5"; fi
+addons:
+    apt:
+        sources:
+            - llvm-toolchain-precise
+            - ubuntu-toolchain-r-test
+        packages:
+            - gcc-5
+            - g++-5
+
+script: ./CIbuild.sh
+
+branches:
+    only:
+        - master
