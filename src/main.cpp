@@ -5,12 +5,13 @@
 
 #include <iostream>
 
-#include "puzzle.hpp"
+//#include "puzzle.hpp"
+#include "threaded.hpp"
 
 int main() {
     int solutions = 0;
 
-    Puzzle first(8);
+    Solver first(8);
     solutions = first.solveBoard();
 
     std::cout << "Found " << solutions << " solutions\n";

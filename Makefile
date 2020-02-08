@@ -20,7 +20,7 @@ CPPL = g++ $(CPPFLAGS) $(LINKFLAGS)
 .PHONY: all
 all: | toolchain $(PNAME)
 
-SRCS = main.cpp puzzle.cpp
+SRCS = main.cpp threaded.cpp
 SOBJ = $(patsubst %.cpp, $(ODIR)/%.o, $(SRCS))
 
 $(BDIR)/$(PNAME): $(SOBJ)
