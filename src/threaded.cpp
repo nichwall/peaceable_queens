@@ -1,23 +1,30 @@
 #include <iostream>
 #include <math.h>
 
-#define LIST_USE 0
+#define THIS_SPEEDUP 0
 
 #include <stdlib.h>
 #include <time.h>
+#include <sstream>
+#include <iterator>
+#include <iostream>
+#include <algorithm>
+#include <filesystem>
 
 #include "threaded.hpp"
 
 Solver::Solver(int sideLength) : Solver(sideLength, 10000, "") {
 
 }
-Solver::Solver(int sideLength, int queenStepSize, std::string queenString) :
+Solver::Solver(int sideLength, int queenStepSize, std::string inputFile) :
     sideLength(sideLength),
     boardSize(sideLength*sideLength) {
 
         // Basic structure setup for now
         queenPositions.push_back(std::vector<int>());
         queenPositions.push_back(std::vector<int>());
+        whiteSize = 0;
+        blackSize = 0;
 
         for (int i=0; i<boardSize; i++) {
             board.push_back(EMPTY);
@@ -33,30 +40,47 @@ Solver::Solver(int sideLength, int queenStepSize, std::string queenString) :
             f_diagState.push_back(0);
             r_diagState.push_back(0);
         }
-    //convertStringToState(queenString);
+        startIndex = 0;
+        currentIndex = 0;
+        solutions = 0;
+        startingQueenCount = 0;
+        // Determine the maximum number of queens that have been placed
+        maxQueensPlaced = 0;
+
+        // Update status based on config file
+        if (inputFile.size() != 0) {
+            std::fstream configFile(inputFile, std::fstream::in);
+            convertStringToState(configFile);
+            configFile.close();
+        }
+        endingQueenCount = startingQueenCount + queenStepSize;
 }
 
 bool Solver::legalPosition(int color, int position) {
+    // Black queens cannot be on the diagonal because this causes an inversion
+    // of a White queen on the diagonal.
+
     // Checks if a queen of COLOR can be placed at POSITION
-    rowError = validRow(color, position);
-    if (rowError && color == BLACK && (position % sideLength == position / sideLength) ) {
-        return false;
-    }
-    return rowError
+    rowValid = true;
+    return validRow (color, position)
+        && (color != BLACK || (position % sideLength != position / sideLength))
         && validCol (color, position)
         && validDiag(color, position);
 }
 bool Solver::addQueen(int position) {
     // Determine what color we're placing
     int color = BLACK;
-    if (queenPositions[WHITE].size() == queenPositions[BLACK].size()) {
+
+    if (whiteSize == blackSize) {
         color = WHITE;
     }
 
     // Attempt to place queen
-    bool canPlace = legalPosition(color, position) &&
-                    position <= ( boardSize - maxQueensPlaced + queenPositions[color].size() ) &&
-                    position >= 0;
+    int queenSize = (color==WHITE) ? whiteSize : blackSize;
+    bool canPlace = position < ( boardSize - maxQueensPlaced + queenSize + 1) &&
+                    position >= 0 &&
+                    queenSize < endingQueenCount && 
+                    legalPosition(color, position);
 
     // Removing permutations of the same solution
     // This is done by limiting the first white piece to be in the
@@ -64,54 +88,60 @@ bool Solver::addQueen(int position) {
     // either a rotation or a reflection. In the case of odd numbered
     // side lengths, the right border is included and the bottom
     // border is excluded
+    int row = getRowIndex(position);
+    int col = getColIndex(position);
+#if 0
+    canPlace = canPlace &&
+            (
+                color != WHITE ||
+                whiteSize != 0 ||
+                row < ((sideLength+1)/2) ||
+                col < ((sideLength+1)/2)
+            );
+#else
     if (canPlace) {
-        //printBoard();
-        if (color == WHITE && queenPositions[WHITE].size() == 0) {
+        if (color == WHITE && whiteSize == 0) {
             canPlace = (position % sideLength < ((sideLength+1)/2)
-                    && position / sideLength < ((sideLength+1)/2) );
-            if (!canPlace) {
-                //std::cout << "A fail\n";
-            }
+                     && position / sideLength < ((sideLength+1)/2) );
         }
     }
-    // Check that the black queen is not on the forward diagonal. Any queen that
-    // is on the diagonal is a permutation of another solution where white is on the diagonal
-    if (canPlace) {
-        if (color == BLACK ) {
-            canPlace = !(position % sideLength == position / sideLength);
-        }
-        if (!canPlace) {
-            //std::cout << "B fail\n";
-        }
-    }
+#endif
 
     if (canPlace && color == BLACK) {
         // Check if the first black queen is above the diagonal.
         // This should remove flips along the diagonal from the first black
-        if (queenPositions[BLACK].size() == 0) {
-            canPlace = (position % sideLength > position / sideLength);
-            if (!canPlace) {
-                //std::cout << "C fail\n";
-            }
-            if (canPlace) {
-                canPlace = (position > queenPositions[WHITE][0]);
-            }
+        if (blackSize == 0) {
+            canPlace = (col > row) &&
+                       (position > queenPositions[WHITE][0]);
         }
 
         // Check that the black piece that is being placed is not
         // on the same row of the first black queen's column, if so, that this
         // queen is not before the first queen
-        if (canPlace && queenPositions[BLACK].size() != 0) {
+        if (canPlace && blackSize != 0) {
+#if 0
+            int temp = queenPositions[BLACK][0];
+            if ( (position / sideLength == temp % sideLength) &&
+                    (position % sideLength <  temp / sideLength) ) {
+                canPlace = false;
+            }
+#else
             if ( (position / sideLength == queenPositions[BLACK][0] % sideLength) &&
                     (position % sideLength <  queenPositions[BLACK][0] / sideLength) ) {
                 canPlace = false;
             }
+#endif
         }
     }
 
     if (canPlace) {
         // Add position to position vector
         queenPositions[color].push_back(position);
+        if (color == WHITE) {
+            whiteSize++;
+        } else {
+            blackSize++;
+        }
         // Update state vectors
         //  White queens are positive
         //  Black queens are negative
@@ -132,14 +162,19 @@ bool Solver::addQueen(int position) {
 int Solver::removeQueen() {
     // Remove the last queen placed on the board
     int color = BLACK;
-    if (queenPositions[WHITE].size() != queenPositions[BLACK].size()) {
+    if (whiteSize != blackSize) {
         color = WHITE;
     }
 
     // Check that the board isn't empty
-    if (queenPositions[color].size() != 0) {
+    if ((color == WHITE && whiteSize != 0) || (color == BLACK && blackSize != 0)) {
         int temp = queenPositions[color].back();
         queenPositions[color].pop_back();
+        if (color == WHITE) {
+            whiteSize--;
+        } else {
+            blackSize--;
+        }
         // Remove from board
         board[temp] = EMPTY;
         // Remove from state vectors.
@@ -159,31 +194,22 @@ int Solver::removeQueen() {
     return -5;
 }
 
-//int Solver::solveBoard(std::string outDirectory) {
-int Solver::solveBoard() {
+int Solver::solveBoard(std::string outDirectory) {
+//int Solver::solveBoard() {
     // Attempt to solve the board
 
-    // Where to attempt placing the next queen.
-    // If placing a queen, next index. If we make it to the end,
-    // remove the last placed queen and continue from there
-    int startIndex = 0;
-    int currentIndex = 0;
-
-    // Keep track of the highest number of queens we were able to place
-    maxQueensPlaced = 0;
-    int solutions = 0;
+    baseOutPath = outDirectory;
 
     bool done = false;
 
     bool lastSuccessful;
-    turn = 0;
+    turn = WHITE;
 
     //std::ofstream ofile ((date_toString()).c_str());
     std::ofstream ofile ("out.txt");
 
-    //while (startIndex < boardSize-1) {
     while (startIndex < boardSize-1 && currentIndex >= 0) {
-        rowError = false;
+        rowValid = true;
 
         // Attempt to place a queen
         lastSuccessful = addQueen(currentIndex);
@@ -200,11 +226,11 @@ int Solver::solveBoard() {
             // Check if we just placed black
             // If so, and this is the highest count of queens, print
             if (turn == WHITE) {
-                if (queenPositions[WHITE].size() > maxQueensPlaced) {
+                if (whiteSize > maxQueensPlaced) {
                     solutions = 0;
                 }
-                if (queenPositions[WHITE].size() >= maxQueensPlaced) {
-                    maxQueensPlaced = queenPositions[WHITE].size();
+                if (whiteSize >= maxQueensPlaced) {
+                    maxQueensPlaced = whiteSize;
                     solutions++;
 #if 1
                     std::cout << "\n";
@@ -212,12 +238,27 @@ int Solver::solveBoard() {
                     writeToFile(ofile);
 #endif
                 }
+#if 0
+                // Check if we have reached the cutoff for this run
+                if (queenPositions[WHITE].size() == endingQueenCount) {
+                    saveState();
+                }
+                // If we have not reached the cutoff, but are higher
+                // than maxQueens, double check whether to save, then
+                // save is necessary.
+                else if (queenPositions[WHITE].size() >= maxQueensPlaced){
+                    maxQueensPlaced = getMaxQueensPlaced();
+                    if (queenPositions[WHITE].size() >= maxQueensPlaced) {
+                        saveState();
+                    }
+                }
+#endif
             }
         } else {
             // If unsuccessful, attempt next spot
             // Check if we failed on row and should skip to next row
             currentIndex++;
-            if (!rowError) {
+            if (!rowValid) {
                 currentIndex += (sideLength - currentIndex % sideLength);
             }
 
@@ -230,7 +271,7 @@ int Solver::solveBoard() {
             }
         }
         // Update the low bound for white queens
-        if (queenPositions[WHITE].size() != 0 && queenPositions[WHITE][0] > startIndex) {
+        if (whiteSize != 0 && queenPositions[WHITE][0] > startIndex) {
             startIndex = queenPositions[WHITE][0];
         }
     }
@@ -260,6 +301,42 @@ void Solver::writeToFile(std::ofstream &ofile) {
     }
     ofile << "\n";
 }
+void Solver::saveState() {
+    saveState(baseOutPath);
+}
+void Solver::saveState(std::string outDirectory) {
+    std::ostringstream temp;
+    // Convert queen positions into unique identifier
+    std::copy(queenPositions[WHITE].begin(), queenPositions[WHITE].end(), 
+        std::ostream_iterator<int>(temp, "-")); 
+    temp << "_";
+    std::copy(queenPositions[BLACK].begin(), queenPositions[BLACK].end(), 
+            std::ostream_iterator<int>(temp, "-")); 
+  
+    // Convert from stringstream to std::string
+    std::string identifier = temp.str();
+
+    // Clear string stream for output data
+    temp.str(std::string());
+
+    // Write side length
+    temp << sideLength << std::endl;
+    // Write queen count
+    temp << whiteSize << std::endl;
+    // Write queen positions
+    for (size_t i=0; i<whiteSize; ++i) {
+        temp << queenPositions[WHITE][i] << " ";
+        temp << queenPositions[BLACK][i] << std::endl;
+    }
+
+    // Convert from stringstream to std::string
+    std::string outData = temp.str();
+
+    // Open solutions file for writing
+    std::fstream outFile( (outDirectory+"/"+std::to_string(queenPositions[WHITE].size())+"/"+identifier+".txt").c_str(), std::fstream::out);
+    outFile << outData;
+    outFile.close();
+}
 
 bool Solver::validPos(int color, int position) {
     // Check that the position in the board is open
@@ -270,8 +347,12 @@ bool Solver::validRow(int color, int position) {
     // If the value of rowState is positive, there are white queens
 
     int row = getRowIndex(position);
-    return (color == BLACK && rowState[row] <  1) ||
-           (color == WHITE && rowState[row] > -1);
+
+    // Logic is like this to match other functions,
+    // but inverted to match name of variable
+    rowValid = (color == BLACK && rowState[row] <  1) ||
+                 (color == WHITE && rowState[row] > -1);
+    return rowValid;
 }
 
 bool Solver::validCol(int color, int position) {
@@ -290,10 +371,22 @@ bool Solver::validDiag(int color, int position) {
     int fDiag = getForwardDiagIndex(position);
     int rDiag = getReverseDiagIndex(position);
 
+#if 1
+    int fState = f_diagState[fDiag];
+    if ( (color == BLACK && fState >  0) ||
+         (color == WHITE && fState <  0) )
+        return false;
+
+    int rState = r_diagState[rDiag];
+    return ( (color == BLACK && rState <  1) ||
+             (color == WHITE && rState > -1) );
+#else
     return ((color == BLACK && f_diagState[fDiag] <  1) ||
             (color == WHITE && f_diagState[fDiag] > -1)   ) &&
            ((color == BLACK && r_diagState[rDiag] <  1) ||
             (color == WHITE && r_diagState[rDiag] > -1)   );
+
+#endif
 }
 
 int Solver::getRowIndex(int position) {
@@ -323,6 +416,20 @@ char Solver::contents(int position) {
         default:
             return '.';
     }
+}
+
+int Solver::getMaxQueensPlaced() {
+    // Find maximum number of queens saved
+    //std::cout << "*" << maxQueensPlaced << "*\n";
+    std::filesystem::path directoryToCheck = baseOutPath + "/" + std::to_string(maxQueensPlaced++);
+    while (!std::filesystem::is_empty( directoryToCheck )) {
+        //std::cout << "Looping for max queens... " << maxQueensPlaced << "\n";
+        directoryToCheck = baseOutPath + "/" + std::to_string(maxQueensPlaced++);
+    }
+    maxQueensPlaced -= 2;
+
+    //std::cout << "Max queens placed: " << maxQueensPlaced << "\n";
+    return maxQueensPlaced;
 }
 
 std::string Solver::solution_toString() {
@@ -359,6 +466,24 @@ std::string Solver::date_toString() {
     return out;
 }
 
-void Solver::convertStringToState(std::string str) {
+void Solver::convertStringToState(std::fstream& config_file) {
+    // This function reads in a string to update values
+    // Get side length
+    config_file >> sideLength;
 
+    // Get current queen count
+    int queenCount;
+    config_file >> queenCount;
+
+    int position;
+    // Read in queen positions
+    for (size_t i = 0; i < queenCount*2; ++i) {
+        config_file >> position;
+        addQueen(position);
+    }
+
+    // Set current position
+    currentIndex = queenPositions[WHITE].back()+1;
+    startIndex = queenPositions[WHITE][0];
+    startingQueenCount = queenCount;
 }
