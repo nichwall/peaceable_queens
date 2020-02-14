@@ -8,8 +8,8 @@ BDIR = bin
 # Compiler option
 INC = $(SDIR)
 INC_PARAMS = $(foreach d, $(INC), -I$d)
-CPPFLAGS = -std=c++17 -g
-#CPPFLAGS = -std=c++17 -O3
+#CPPFLAGS = -std=c++17 -g
+CPPFLAGS = -std=c++17 -O3
 LINKFLAGS = 
 
 # Compilation commands
@@ -20,7 +20,7 @@ CPPL = g++ $(CPPFLAGS) $(LINKFLAGS)
 .PHONY: all
 all: | toolchain $(PNAME)
 
-SRCS = main.cpp threaded.cpp
+SRCS = main.cpp threaded.cpp fileSystem.cpp
 SOBJ = $(patsubst %.cpp, $(ODIR)/%.o, $(SRCS))
 
 $(BDIR)/$(PNAME): $(SOBJ)

@@ -9,8 +9,12 @@
 #include <iterator>
 #include <iostream>
 #include <algorithm>
-#include <filesystem>
+// This include is required for GCC < 8
+//#include <experimental/filesystem>
+// This include works for GCC >= 8
+//#include <filesystem>
 
+#include "fileSystem.hpp"
 #include "threaded.hpp"
 
 Solver::Solver(int sideLength) : Solver(sideLength, 10000, "") {
@@ -238,7 +242,7 @@ int Solver::solveBoard(std::string outDirectory) {
                     writeToFile(ofile);
 #endif
                 }
-#if 0
+#if 1
                 // Check if we have reached the cutoff for this run
                 if (queenPositions[WHITE].size() == endingQueenCount) {
                     saveState();
@@ -421,10 +425,13 @@ char Solver::contents(int position) {
 int Solver::getMaxQueensPlaced() {
     // Find maximum number of queens saved
     //std::cout << "*" << maxQueensPlaced << "*\n";
-    std::filesystem::path directoryToCheck = baseOutPath + "/" + std::to_string(maxQueensPlaced++);
-    while (!std::filesystem::is_empty( directoryToCheck )) {
+    //std::experimental::filesystem::path directoryToCheck = baseOutPath + "/" + std::to_string(maxQueensPlaced++);
+    std::string filesInFolder = exec(("ls " + baseOutPath + "/" + std::to_string(maxQueensPlaced++)).c_str());
+    //while (!std::experimental::filesystem::is_empty( directoryToCheck )) {
+    while (filesInFolder.size() != 0) {
         //std::cout << "Looping for max queens... " << maxQueensPlaced << "\n";
-        directoryToCheck = baseOutPath + "/" + std::to_string(maxQueensPlaced++);
+        //directoryToCheck = baseOutPath + "/" + std::to_string(maxQueensPlaced++);
+        filesInFolder = exec(("ls " + baseOutPath + "/" + std::to_string(maxQueensPlaced++)).c_str());
     }
     maxQueensPlaced -= 2;
 
