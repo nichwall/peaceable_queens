@@ -23,13 +23,14 @@ class Solver {
 
         int solveBoard(std::string outDirectory);
 
-        void printBoard();
+        void printBoard(std::ostream &stream);
         void writeToFile(std::ofstream &ofile);
         void saveState();
         void saveState(std::string outDirectory);
     private:
         // Solution static values
         int sideLength;
+        int halfLength;
         int boardSize;
         int startingQueenCount;
         int endingQueenCount;
@@ -37,7 +38,7 @@ class Solver {
         std::string baseOutPath;
 
         // State of the board
-        std::vector<int> board;
+        //std::vector<int> board;
         std::vector<std::vector<int>> queenPositions;
         int whiteSize;
         int blackSize;

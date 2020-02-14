@@ -22,6 +22,7 @@ Solver::Solver(int sideLength) : Solver(sideLength, 10000, "") {
 }
 Solver::Solver(int sideLength, int queenStepSize, std::string inputFile) :
     sideLength(sideLength),
+    halfLength((sideLength+1)/2),
     boardSize(sideLength*sideLength) {
 
         // Basic structure setup for now
@@ -30,9 +31,11 @@ Solver::Solver(int sideLength, int queenStepSize, std::string inputFile) :
         whiteSize = 0;
         blackSize = 0;
 
+        /*
         for (int i=0; i<boardSize; i++) {
             board.push_back(EMPTY);
         }
+        */
 
         turn = 0;
         
@@ -103,11 +106,11 @@ bool Solver::addQueen(int position) {
                 col < ((sideLength+1)/2)
             );
 #else
-    if (canPlace) {
-        if (color == WHITE && whiteSize == 0) {
-            canPlace = (position % sideLength < ((sideLength+1)/2)
-                     && position / sideLength < ((sideLength+1)/2) );
-        }
+    if (canPlace && color == WHITE && whiteSize == 0) {
+        //if (color == WHITE && whiteSize == 0) {
+            canPlace = (position % sideLength < halfLength
+                     && position / sideLength < halfLength );
+        //}
     }
 #endif
 
@@ -125,13 +128,12 @@ bool Solver::addQueen(int position) {
         if (canPlace && blackSize != 0) {
 #if 0
             int temp = queenPositions[BLACK][0];
-            if ( (position / sideLength == temp % sideLength) &&
-                    (position % sideLength <  temp / sideLength) ) {
-                canPlace = false;
+            if (row == temp%sideLength) {
+                canPlace = !(col < temp / sideLength);
             }
 #else
-            if ( (position / sideLength == queenPositions[BLACK][0] % sideLength) &&
-                    (position % sideLength <  queenPositions[BLACK][0] / sideLength) ) {
+            if ( (row == queenPositions[BLACK][0] % sideLength) &&
+                    (col <  queenPositions[BLACK][0] / sideLength) ) {
                 canPlace = false;
             }
 #endif
@@ -158,7 +160,7 @@ bool Solver::addQueen(int position) {
         r_diagState[getReverseDiagIndex(position)] += delta;
         f_diagState[getForwardDiagIndex(position)] += delta;
         // Change the value in the board
-        board[position] = color;
+        //board[position] = color;
     }
 
     return canPlace;
@@ -180,7 +182,7 @@ int Solver::removeQueen() {
             blackSize--;
         }
         // Remove from board
-        board[temp] = EMPTY;
+        //board[temp] = EMPTY;
         // Remove from state vectors.
         //  White queens are positive
         //  Black queens are negative
@@ -238,7 +240,7 @@ int Solver::solveBoard(std::string outDirectory) {
                     solutions++;
 #if 1
                     std::cout << "\n";
-                    printBoard();
+                    printBoard(std::cout);
                     writeToFile(ofile);
 #endif
                 }
@@ -284,26 +286,52 @@ int Solver::solveBoard(std::string outDirectory) {
     return solutions;
 }
 
-void Solver::printBoard() {
+void Solver::printBoard(std::ostream &stream) {
     time_t currentTime = time(NULL);
-    printf("%s", ctime(&currentTime));
+    stream << ctime(&currentTime);
+
+#if 0
     for (int i=0; i<sideLength; i++) {
         for (int j=0; j<sideLength; j++) {
-            std::cout << contents(i*sideLength + j);
+            stream << contents(i*sideLength + j);
         }
-        std::cout << "\n";
+        stream << "\n";
     }
+#else
+    // Queen index
+    int whiteIndex = 0;
+    int whiteValue = queenPositions[WHITE][whiteIndex];
+    int blackIndex = 0;
+    int blackValue = queenPositions[BLACK][blackIndex];
+    for (int i=0; i<sideLength; ++i) {
+        for (int j=0; j<sideLength; ++j) {
+            if (i*sideLength + j == whiteValue) {
+                stream << "W";
+                whiteIndex++;
+                whiteValue = (whiteIndex < whiteSize) ? queenPositions[WHITE][whiteIndex] : -1;
+            } else if (i*sideLength + j == blackValue) {
+                stream << "B";
+                blackIndex++;
+                blackValue = (blackIndex < blackSize) ? queenPositions[BLACK][blackIndex] : -1;
+            } else {
+                stream << ".";
+            }
+        }
+        stream << "\n";
+    }
+#endif 
 }
 void Solver::writeToFile(std::ofstream &ofile) {
-    ofile << date_toString();
-    ofile << "\n";
-    for (int i=0; i<sideLength; i++) {
-        for (int j=0; j<sideLength; j++) {
-            ofile << contents(i*sideLength + j);
-        }
-        ofile << "\n";
-    }
-    ofile << "\n";
+    printBoard(ofile);
+    //ofile << date_toString();
+    //ofile << "\n";
+    //for (int i=0; i<sideLength; i++) {
+        //for (int j=0; j<sideLength; j++) {
+            //ofile << contents(i*sideLength + j);
+        //}
+        //ofile << "\n";
+    //}
+    //ofile << "\n";
 }
 void Solver::saveState() {
     saveState(baseOutPath);
@@ -342,9 +370,11 @@ void Solver::saveState(std::string outDirectory) {
     outFile.close();
 }
 
+// This function is no longer needed to reduce memory lookup time
 bool Solver::validPos(int color, int position) {
     // Check that the position in the board is open
-    return (board[position] == EMPTY);
+    //return (board[position] == EMPTY);
+    return true;
 }
 bool Solver::validRow(int color, int position) {
     // If the value of rowState is negative, there are black queens
@@ -412,6 +442,7 @@ int Solver::getReverseDiagIndex(int position) {
 
 char Solver::contents(int position) {
     // Check if queen at position.
+    /*
     switch(board[position]) {
         case BLACK:
             return 'B';
@@ -420,6 +451,8 @@ char Solver::contents(int position) {
         default:
             return '.';
     }
+    */
+    return '.';
 }
 
 int Solver::getMaxQueensPlaced() {
