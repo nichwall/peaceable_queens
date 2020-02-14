@@ -38,7 +38,6 @@ class Solver {
         std::string baseOutPath;
 
         // State of the board
-        //std::vector<int> board;
         std::vector<std::vector<int>> queenPositions;
         int whiteSize;
         int blackSize;
